@@ -6,6 +6,8 @@ MorseEncoder morseL = (OUTPUT_PIN); // Morse output pin
 char needInput = 1; // !(If you need to print the "Enter Message" message)
 String message; // The message to be transmitted
 String receipt; // Message received
+char prevInBit = 0;
+long lastOn;
 enum MORSE_STATES {WAIT, TRANSMIT, RECEIVE, HANDSHAKE_T, HANDSHAKE_R} MORSE_STATE;
 
 void setup() {
@@ -16,24 +18,30 @@ void setup() {
 
 void onTick(){
   //Transition Switch
+  long currentTime;
+  char currentBit;
   switch (MORSE_STATE) {
     case WAIT: // Check for message to send or greeting from other Arduino
-    
-    if (digitalRead(INPUT_PIN)){MORSE_STATE = HANDSHAKE_R;}
+    currentBit = digitalRead(INPUT_PIN);
+    currentTime = millis();
+    if (currentBit){
+      if (!prevInBit){lastOn = currentTime;}
+      if (currentTime - lastOn > 2000){MORSE_STATE = HANDSHAKE_R;}
+      }
+
     else if (message != ""){MORSE_STATE = HANDSHAKE_T;}
+    prevInBit = currentBit;
     break;
     case HANDSHAKE_T: // Has greeting been received
     
     if (digitalRead(INPUT_PIN)){Serial.print("Handshake Returned. Beginning Transmit in 2s."); delay(2100); MORSE_STATE = TRANSMIT;}
     break;
     case HANDSHAKE_R: // Automatically transitions to RECEIVE
-   
     break;
     case TRANSMIT: // Automatically Transitions to Wait after message sent
    
     break;
     case RECEIVE: // Automatically Transitions to Wait after message received
-    
     break;
   }
 
@@ -76,14 +84,14 @@ void onTick(){
 
 String decode() {
   String receipt = "";
-  char prev_bit = 0;
+  char prevBit = 0;
   while (1){
     long currentTime = millis();
     long lastOnTime;
     long lastOffTime;
     char bit = digitalRead(INPUT_PIN);
     if (bit){ 
-      if (!prev_bit){
+      if (!prevBit){
         lastOnTime = millis();
         long timeDiff = currentTime - lastOffTime; // How long the light was off
         if (timeDiff >= 1020){ // space = 1440 ms
@@ -93,7 +101,7 @@ String decode() {
         }
       }
     } else{ // If bit just turned off, identify info received
-      if (prev_bit){
+      if (prevBit){
         lastOffTime = millis();
         long timeDiff = currentTime - lastOnTime; // How long the light was on
         // dot = 240 ms dash = 960 space = 1440 ms letter space = 480 ms
@@ -104,14 +112,14 @@ String decode() {
         } else if (timeDiff > 2000){ // Light on for 2 seconds = END MESSAGE
           MORSE_STATE = WAIT;
           if (receipt != "") {
-            String msg_out = decodeMessage(receipt);
-            Serial.println(msg_out);
+            String msgOut = decodeMessage(receipt);
+            Serial.println(msgOut);
             }
           return receipt;
         }
       }
     }
-    prev_bit = bit;
+    prevBit = bit;
   }
 }
 
@@ -135,7 +143,7 @@ char getLetter(char code[]) {
 }
 
 String decodeMessage(String receipt) {
-  String msg_out;
+  String msgOut;
   char code[5] = "", msg[50] = "";
   int j = 0, k = 0;
   for (int i = 0; receipt[i] != '\0'; i++) {
@@ -164,7 +172,6 @@ String decodeMessage(String receipt) {
     msg[k++] = getLetter(code);
     msg[k] = '\0';
   }
-  msg_out = String(msg);
-  //strcpy(msg_out, msg);
-  return msg_out;
+  msgOut = String(msg);
+  return msgOut;
 }
