@@ -73,7 +73,7 @@ void onTick(){
 
 }
 
-String decode(){
+String decode() {
   String receipt = "";
   char prev_bit = 0;
   while (1){
@@ -112,8 +112,10 @@ String decode(){
 
 void loop() {
   onTick();
-  String msg_out = decodeMessage(receipt);
-  Serial.println(msg_out);
+  if (receipt != "") {
+    String msg_out = decodeMessage(receipt);
+    Serial.println(msg_out);
+  }
 }
 
 const char* morseChart[] = {
@@ -156,9 +158,11 @@ String decodeMessage(String receipt) {
       break;
     }
   }
-  code[j] = '\0';
-  msg[k++] = getLetter(code);
-  msg[k] = '\0';
+  if (j > 0) {
+    code[j] = '\0';
+    msg[k++] = getLetter(code);
+    msg[k] = '\0';
+  }
 
   strcpy(msg_out, msg);
   return msg_out;
