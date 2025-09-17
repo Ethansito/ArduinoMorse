@@ -1,4 +1,5 @@
 #include "MorseEncoder.h"
+#include "string.h"
 #define INPUT_PIN 52
 #define OUTPUT_PIN 53
 MorseEncoder morseL = (OUTPUT_PIN); // Morse output pin
@@ -17,22 +18,22 @@ void onTick(){
   //Transition Switch
   switch (MORSE_STATE) {
     case WAIT: // Check for message to send or greeting from other Arduino
-    Serial.print(MORSE_STATE);
+    
     if (digitalRead(INPUT_PIN)){MORSE_STATE = HANDSHAKE_R;}
     else if (message != ""){MORSE_STATE = HANDSHAKE_T;}
     break;
     case HANDSHAKE_T: // Has greeting been received
-    Serial.print(MORSE_STATE);
+    
     if (digitalRead(INPUT_PIN)){Serial.print("Handshake Returned. Beginning Transmit in 2s."); delay(2100); MORSE_STATE = TRANSMIT;}
     break;
     case HANDSHAKE_R: // Automatically transitions to RECEIVE
-    Serial.print(MORSE_STATE);
+   
     break;
     case TRANSMIT: // Automatically Transitions to Wait after message sent
-    Serial.print(MORSE_STATE);
+   
     break;
     case RECEIVE: // Automatically Transitions to Wait after message received
-    Serial.print(MORSE_STATE);
+    
     break;
   }
 
@@ -65,14 +66,15 @@ void onTick(){
     MORSE_STATE = WAIT;
     break;
     case RECEIVE:
-    Serial.print(decode());
+    receipt = decode();
+    Serial.println(receipt);
     MORSE_STATE = WAIT;
     break;
   }
 
 }
 
-String decode(){
+String decode() {
   String receipt = "";
   char prev_bit = 0;
   while (1){
@@ -86,6 +88,8 @@ String decode(){
         long timeDiff = currentTime - lastOffTime; // How long the light was off
         if (timeDiff >= 1020){ // space = 1440 ms
           receipt += " ";
+        } else if (timeDiff > 300 && timeDiff < 1020){
+          receipt += "/";
         }
       }
     } else{ // If bit just turned off, identify info received
@@ -99,6 +103,10 @@ String decode(){
           receipt += "-";
         } else if (timeDiff > 2000){ // Light on for 2 seconds = END MESSAGE
           MORSE_STATE = WAIT;
+          if (receipt != "") {
+            String msg_out = decodeMessage(receipt);
+            Serial.println(msg_out);
+            }
           return receipt;
         }
       }
@@ -109,4 +117,54 @@ String decode(){
 
 void loop() {
   onTick();
+}
+
+const char* morseChart[] = {
+  ".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..",
+  ".---", "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.",
+  "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--.."
+};
+
+char getLetter(char code[]) {
+  for(int i = 0; i < 26; i++) {
+    if (strcmp(morseChart[i], code) == 0) {
+      return 'A' + i;
+    }
+  }
+  return '?';
+}
+
+String decodeMessage(String receipt) {
+  String msg_out;
+  char code[5] = "", msg[50] = "";
+  int j = 0, k = 0;
+  for (int i = 0; receipt[i] != '\0'; i++) {
+    switch (receipt[i]) {
+      case '.':
+      case '-':
+      code[j++] = receipt[i];
+      break;
+
+      case '/':
+      code[j] = '\0';
+      j = 0;
+      msg[k++] = getLetter(code);
+      break;
+
+      case ' ':
+      code[j] = '\0';
+      j = 0;
+      msg[k++] = getLetter(code);
+      msg[k++] = ' ';
+      break;
+    }
+  }
+  if (j > 0) {
+    code[j] = '\0';
+    msg[k++] = getLetter(code);
+    msg[k] = '\0';
+  }
+  msg_out = String(msg);
+  //strcpy(msg_out, msg);
+  return msg_out;
 }
