@@ -65,7 +65,8 @@ void onTick(){
     MORSE_STATE = WAIT;
     break;
     case RECEIVE:
-    Serial.print(decode());
+    receipt = decode()
+    Serial.print(receipt);
     MORSE_STATE = WAIT;
     break;
   }
@@ -86,6 +87,8 @@ String decode(){
         long timeDiff = currentTime - lastOffTime; // How long the light was off
         if (timeDiff >= 1020){ // space = 1440 ms
           receipt += " ";
+        } else if (timeDiff > 240 && timeDiff < 1020){
+          receipt += "/";
         }
       }
     } else{ // If bit just turned off, identify info received
@@ -109,4 +112,54 @@ String decode(){
 
 void loop() {
   onTick();
+  String msg_out = decodeMessage(receipt);
+  Serial.println(msg_out);
+}
+
+const char* morseChart[] = {
+  ".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..",
+  ".---", "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.",
+  "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--.."
+};
+
+char getLetter(char code[]) {
+  for(int i = 0; i < 26; i++) {
+    if (strcmp(morseChart[i], code) == 0) {
+      return 'A' + i;
+    }
+  }
+  return '?';
+}
+
+String decodeMessage(String receipt) {
+  String msg_out;
+  char code[5], msg[100];
+  int j = 0, k = 0;
+  for (int i = 0; receipt[i] != '\0'; i++) {
+    switch (receipt[i]) {
+      case '.':
+      case '-':
+      code[j++] = receipt[i];
+      break;
+
+      case '/':
+      code[j] = '\0';
+      j = 0;
+      msg[k++] = getLetter(code);
+      break;
+
+      case ' ':
+      code[j] = '\0';
+      j = 0;
+      msg[k++] = getLetter(code);
+      msg[k++] = ' ';
+      break;
+    }
+  }
+  code[j] = '\0';
+  msg[k++] = getLetter(code);
+  msg[k] = '\0';
+
+  strcpy(msg_out, msg);
+  return msg_out;
 }
