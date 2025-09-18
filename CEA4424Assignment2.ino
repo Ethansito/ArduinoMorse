@@ -127,24 +127,29 @@ void loop() {
   onTick();
 }
 
-const char* morseChart[] = {
-  ".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..",
-  ".---", "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.",
-  "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--.."
+const char* morseChart[34][2] = {
+  {".-", "A"}, {"-...","B"}, {"-.-.","C"}, {"-..","D"}, {".","E"},
+  {"..-.","F"}, {"--.","G"}, {"....","H"}, {"..","I"},
+  {".---","J"}, {"-.-","K"}, {".-..","L"}, {"--","M"}, {"-.","N"},
+  {"---","O"}, {".--.","P"}, {"--.-","Q"}, {".-.","R"},
+  {"...","S"}, {"-","T"}, {"..-","U"}, {"...-","V"},
+  {".--","W"}, {"-..-","X"}, {"-.--","Y"}, {"--..","Z"},
+  {"..--..","?"},{".-.-.-","."},{".-..-.","\""},{"--..--",","},
+  {"-....-","-"},{"---...",":"},{"-.-.-.",";"},{"-.-.--","!"}
 };
 
 char getLetter(char code[]) {
-  for(int i = 0; i < 26; i++) {
-    if (strcmp(morseChart[i], code) == 0) {
-      return 'A' + i;
+  for(int i = 0; i < 34; i++) {
+    if (strcmp(morseChart[i][0], code) == 0) {
+      return morseChart[i][1][0];
     }
   }
-  return '?';
+  return "@";
 }
 
 String decodeMessage(String receipt) {
   String msgOut;
-  char code[5] = "", msg[50] = "";
+  char code[7] = "", msg[50] = "";
   int j = 0, k = 0;
   for (int i = 0; receipt[i] != '\0'; i++) {
     switch (receipt[i]) {
@@ -173,5 +178,6 @@ String decodeMessage(String receipt) {
     msg[k] = '\0';
   }
   msgOut = String(msg);
+  //strcpy(msg_out, msg);
   return msgOut;
 }
